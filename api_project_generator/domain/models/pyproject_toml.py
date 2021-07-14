@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from typing import Callable
 
-from project_generator.functions import get_python_version
+from api_project_generator.functions import get_python_version
 
 
 @dataclass

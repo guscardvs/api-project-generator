@@ -127,7 +127,6 @@ DATABASE_PROVIDER = """from contextlib import asynccontextmanager
 from typing import Literal, Optional
 
 from {project_folder}.core import settings
-from fastapi import FastAPI
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -141,7 +140,7 @@ class DatabaseProvider:
     def get_connection_uri():
         return "mysql://{{user}}:{{passwd}}@{{host}}:3306/{{name}}".format(
             user=settings.DB_USER,
-            passwd=settings.DB_PASSWD,
+            passwd=settings.DB_PASSWORD,
             host=settings.DB_HOST,
             name=settings.DB_NAME,
         )
@@ -180,13 +179,12 @@ class DatabaseProvider:
 """
 
 SETTINGS_FILE = """
-import os
 from pathlib import Path
 
 from dotenv import load_dotenv
 
 from {project_folder}.core.log import set_logger
-from {project_folder}.{utils_folder}.env import Env, Environment
+from {project_folder}.{utils_folder} import Env, Environment
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 if (env_file:=(BASE_DIR / ".env")).exists():
@@ -205,10 +203,9 @@ DB_HOST =required_env("DB_HOST", dev="localhost")
 
 """
 
-LOG_FILE = """
-import logging
+LOG_FILE = """import logging
 
-from {project_folder}.{utils_folder}.env import Env
+from {project_folder}.{utils_folder} import Env
 
 
 def set_logger(env: Env):
@@ -224,10 +221,9 @@ __all__ = ["Env", "Environment"]
 """
 
 ENVIRONMENT_FILE = """from enum import Enum
-from functools import partial
 from logging import Logger
 from os import getenv
-from typing import Callable, Optional, TypeVar, Union, overload
+from typing import Callable, Optional, TypeVar
 
 from {project_folder}.{exceptions_folder} import EnvironmentNotSet
 
@@ -376,11 +372,8 @@ def set_api_error_handler(app: FastAPI):
 
 """
 
-EXCEPTIONS_FILE = """from typing import Union
-
-from starlette.status import (
+EXCEPTIONS_FILE = """from starlette.status import (
     HTTP_400_BAD_REQUEST,
-    HTTP_401_UNAUTHORIZED,
     HTTP_403_FORBIDDEN,
     HTTP_404_NOT_FOUND,
     HTTP_500_INTERNAL_SERVER_ERROR,
@@ -424,7 +417,7 @@ class RepositoryError(ApiError):
     @classmethod
     def preload_cls(cls, obj: str = "Object"):
         exc = cls()
-        exc._object = result_string
+        exc._object = obj
         return exc
 
 
@@ -569,11 +562,9 @@ def test_set_logger_sets_logger():
 """
 
 
-MAIN_FILE = """from sys import prefix
+MAIN_FILE = """from fastapi import FastAPI
 
-from fastapi import FastAPI
-
-from {project_folder} import api
+from {project_folder} import routes
 from {project_folder}.{providers_folder} import DatabaseProvider, HttpProvider
 from {project_folder}.{exceptions_folder} import set_api_error_handler
 
@@ -599,7 +590,7 @@ def get_application(prefix: str = ""):
         docs_url=f"{{prefix}}/docs",
         redoc_url=f"{{prefix}}/redoc",
     )
-    _app.include_router(api.router, prefix=f"{{prefix or '/'}}")
+    _app.include_router(routes.router, prefix=f"{{prefix or '/'}}")
 
     _app.add_event_handler("startup", create_startup_handler(_app))
     _app.add_event_handler("shutdown", create_shutdown_handler(_app))
@@ -1445,7 +1436,7 @@ from sqlalchemy import Table
 class ModelFinder:
     def __init__(self, path: Path, root: Path = None):
         self.path = path
-        self.models = {{}}
+        self.models = {}
         self.root = root or path
 
     def find(self):

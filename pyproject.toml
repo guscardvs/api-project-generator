@@ -1,12 +1,12 @@
 [tool.poetry]
 name = "api-project-generator"
-version = "0.1.0"
+version = "0.1.2"
 description = ""
 authors = ["Gustavo Correa <self.gustavocorrea@gmail.com>"]
-packages = [{ include = "project_generator" }]
+readme = "README.md"
 
 [tool.poetry.scripts]
-start = "project_generator.main:app"
+api-project = "api_project_generator.main:app"
 
 [tool.poetry.dependencies]
 python = "^3.9"

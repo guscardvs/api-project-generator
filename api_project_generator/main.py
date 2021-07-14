@@ -2,9 +2,9 @@ from dataclasses import asdict
 
 import typer
 
-from project_generator.domain.models.pyproject_toml import PyprojectToml
-from project_generator.domain.structure import Structure
-from project_generator.functions import (
+from api_project_generator.domain.models.pyproject_toml import PyprojectToml
+from api_project_generator.domain.structure import Structure
+from api_project_generator.functions import (
     get_curdir,
     get_default_email,
     get_default_fullname,
@@ -16,7 +16,7 @@ app = get_application()
 
 
 @app.command()
-def main():
+def create():
     project_name = typer.prompt("Digite o nome do projeto")
     version = typer.prompt(
         "Digite a versão inicial do projeto",

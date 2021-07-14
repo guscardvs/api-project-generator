@@ -1,11 +1,11 @@
 import builtins
+import os
 import re
 import sys
 from pathlib import Path
 
-from git import Repo
-
-from project_generator.services.repository import pypi_repository
+from git import GitConfigParser
+from api_project_generator.services.repository import pypi_repository
 
 
 def get_curdir():
@@ -13,17 +13,16 @@ def get_curdir():
 
 
 def get_default_fullname() -> str:
-    reader = Repo().config_reader()
+    reader = GitConfigParser()
     return reader.get_value("user", "name", "")  # type: ignore
 
 
 def get_default_email() -> str:
-    reader = Repo().config_reader()
+    reader = GitConfigParser()
     return reader.get_value("user", "email", "")  # type: ignore
 
 
 def get_user_signature(fullname: str, email: str):
-    reader = Repo().config_reader()
     return "{name} <{email}>".format(name=fullname, email=email)
 
 

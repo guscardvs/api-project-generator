@@ -5,10 +5,10 @@ from pathlib import Path
 from typing import Any
 from unicodedata import normalize
 
-from project_generator.domain.models.pyproject_toml import PyprojectToml
-from project_generator.files import Files
-from project_generator.functions import get_dependency_string
-from project_generator.services import strings
+from api_project_generator.domain.models.pyproject_toml import PyprojectToml
+from api_project_generator.files import Files
+from api_project_generator.functions import get_dependency_string
+from api_project_generator.services import strings
 
 
 class Structure:
@@ -262,7 +262,7 @@ class Structure:
         with self._get_file_stream(dunder) as stream:
             stream.write(
                 strings.DUNDER_ROUTES.format(
-                    main_router_file=self.main_file.removesuffix(".py")
+                    main_router_file=self.main_router_file.removesuffix(".py")
                 )
             )
         with self._get_file_stream(route) as stream:
