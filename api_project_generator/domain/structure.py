@@ -266,7 +266,12 @@ class Structure:
                 )
             )
         with self._get_file_stream(route) as stream:
-            stream.write(strings.MAIN_ROUTER_FILE)
+            stream.write(
+                strings.MAIN_ROUTER_FILE.format(
+                    project_folder=self.project_folder,
+                    providers_folder=self.providers_folder,
+                )
+            )
 
     def create_dependencies_folder(self):
         self.files.create_dir(
@@ -359,6 +364,7 @@ class Structure:
                     project_folder=self.project_folder,
                     providers_folder=self.providers_folder,
                     exceptions_folder=self.exceptions_folder,
+                    project_as_title=self.pyproject_toml.get_project_title(),
                 )
             )
 
@@ -472,6 +478,11 @@ class Structure:
         with self._get_file_stream(alembic_readme) as stream:
             stream.write(strings.ALEMBIC_README)
 
+    def create_dotenv(self):
+        dotenv = self.files.create_file(".env")
+        with self._get_file_stream(dotenv) as stream:
+            stream.write(strings.DOTENV)
+
     @classmethod
     def create(cls, base_dir: Path, project_name: str, pyproject_toml: PyprojectToml):
         structure = cls(base_dir, project_name, pyproject_toml)
@@ -542,5 +553,8 @@ class Structure:
         # Alembic
         structure.create_alembic_folder()
         structure.create_alembic_files()
+
+        # .env
+        structure.create_dotenv()
 
         return structure

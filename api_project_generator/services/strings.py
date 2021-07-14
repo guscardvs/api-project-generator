@@ -3,7 +3,6 @@ name = "{project_name}"
 version = "{version}"
 description = "{description}"
 authors = ["{fullname} <{email}>"]
-packages = [{{ include = "{project_folder}" }}]
 
 [tool.poetry.dependencies]
 {dependencies}
@@ -176,6 +175,15 @@ class DatabaseProvider:
             async with session.begin():
                 yield session
 
+    async def healthcheck(self):
+        try:
+            async with self.begin() as session:
+                await session.execute("SELECT 1")
+            return True
+        except:
+            settings.logger.exception()
+            return False
+
 """
 
 SETTINGS_FILE = """
@@ -187,7 +195,7 @@ from {project_folder}.core.log import set_logger
 from {project_folder}.{utils_folder} import Env, Environment
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-if (env_file:=(BASE_DIR / ".env")).exists():
+if (env_file:=(BASE_DIR.parent / ".env")).exists():
     load_dotenv(env_file)
 
 environment = Environment()
@@ -311,8 +319,16 @@ DUNDER_ROUTES = """from .{main_router_file} import router
 __all__ = ["router"] 
 """
 
-MAIN_ROUTER_FILE = """from fastapi import APIRouter
+MAIN_ROUTER_FILE = """from fastapi import APIRouter, Depends
+
+from {project_folder}.{providers_folder} import DatabaseProvider
+from .dependencies import get_database_provider
+
 router = APIRouter()
+
+@router.get("/health")
+async def validate_health(database_provider: DatabaseProvider = Depends(get_database_provider)):
+    return {{"status":await database_provider.healthcheck()}}
 
 """
 
@@ -585,12 +601,12 @@ def create_shutdown_handler(_app: FastAPI):
 
 def get_application(prefix: str = ""):
     _app = FastAPI(
-        title="Adapty Event Listener",
+        title="{project_as_title}",
         openapi_url=f"{{prefix}}/openapi.json",
         docs_url=f"{{prefix}}/docs",
         redoc_url=f"{{prefix}}/redoc",
     )
-    _app.include_router(routes.router, prefix=f"{{prefix or '/'}}")
+    _app.include_router(routes.router, prefix=f"{{prefix}}")
 
     _app.add_event_handler("startup", create_startup_handler(_app))
     _app.add_event_handler("shutdown", create_shutdown_handler(_app))
@@ -605,7 +621,7 @@ app = get_application()
 def main():
     import uvicorn
 
-    uvicorn.run("adapty_listener.main:app", reload=True)
+    uvicorn.run("{project_folder}.main:app", reload=True)
 
 """
 
@@ -1700,4 +1716,11 @@ formatter = generic
 [formatter_generic]
 format = %%(levelname)-5.5s [%%(name)s] %%(message)s
 datefmt = %H:%M:%S
+"""
+
+DOTENV = """ENV=
+DB_NAME=
+DB_USER=
+DB_PASSWORD=
+DB_HOST=
 """
