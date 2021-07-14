@@ -1,0 +1,40 @@
+[tool.poetry]
+name = "stories"
+version = "0.1.0"
+description = ""
+authors = ["Gustavo Correa <self.gustavocorrea@gmail.com>"]
+packages = [{ include = "stories" }]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+circus = "^0.17.1"
+gunicorn = "^20.1.0"
+python-dotenv = "^0.18.0"
+aiohttp = "^3.7.4.post0"
+pydantic = { extras = ["email"], version= "^1.8.2" }
+aiomysql = "^0.0.21"
+fastapi = "^0.66.0"
+uvicorn = "^0.14.0"
+sqlalchemy = "^1.4.20"
+uvloop = { version= "^0.15.3", optional = true }
+httptools = { version= "^0.2.0", optional = true }
+
+[tool.poetry.dev-dependencies]
+python = "^3.9"
+pytest-asyncio = "^0.15.1"
+sqlalchemy2-stubs = "^0.0.2a4"
+pytest = "^6.2.4"
+pylint = "^2.9.3"
+black = "^21.6b0"
+pytest-cov = "^2.12.1"
+
+[tool.poetry.scripts]
+start = "stories.main:main"
+
+[tool.poetry.extras]
+deploy = ["httptools", "uvloop"]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+

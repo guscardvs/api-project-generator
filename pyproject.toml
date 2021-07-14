@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "api-project-generator"
+version = "0.1.0"
+description = ""
+authors = ["Gustavo Correa <self.gustavocorrea@gmail.com>"]
+packages = [{ include = "project_generator" }]
+
+[tool.poetry.scripts]
+start = "project_generator.main:app"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+typer = { extras = ["all"], version = "^0.3.2" }
+GitPython = "^3.1.18"
+poetry = "^1.1.7"
+
+[tool.poetry.dev-dependencies]
+black = "^21.6b0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
