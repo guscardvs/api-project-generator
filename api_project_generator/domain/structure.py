@@ -7,7 +7,7 @@ from unicodedata import normalize
 
 from api_project_generator.domain.models.pyproject_toml import PyprojectToml
 from api_project_generator.files import Files
-from api_project_generator.functions import get_dependency_string
+from api_project_generator.functions import clean_name, get_dependency_string, to_snake
 from api_project_generator.services import strings
 
 
@@ -43,17 +43,8 @@ class Structure:
                 )
             )
 
-    def _clean_project_name(self):
-        return normalize("NFC", self.project_name.strip().replace("-", "_").lower())
-
-    def to_snake(self, name: str):
-        return re.sub(
-            "([a-z])([A-Z])", lambda match: f"{match[1]}_{match[2]}".lower(), name
-        )
-
     def _parsed_project_name(self):
-
-        return self.to_snake(self._clean_project_name())
+        return to_snake(clean_name(self.project_name))
 
     @property
     def project_folder(self):

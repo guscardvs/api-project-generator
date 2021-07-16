@@ -1,10 +1,10 @@
-import builtins
-import os
 import re
 import sys
 from pathlib import Path
+from unicodedata import normalize
 
 from git import GitConfigParser
+
 from api_project_generator.services.repository import pypi_repository
 
 
@@ -55,3 +55,14 @@ def get_dependency_string(lib: str, optional: bool = False):
 
 def get_python_version():
     return f'python = "^{sys.version_info.major}.{sys.version_info.minor}"'
+
+
+def to_snake(name: str):
+    return re.sub(
+        "([a-z])([A-Z])", lambda match: f"{match[1]}_{match[2]}".lower(), name
+    )
+
+
+def clean_name(string: str):
+    return normalize("NFC", string.strip().replace("-", "_").lower())
+

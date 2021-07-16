@@ -1724,3 +1724,23 @@ DB_USER=
 DB_PASSWORD=
 DB_HOST=
 """
+
+
+TABLE_TEMPLATE = """from sqlalchemy import Table, Column, Integer
+from {project_folder}.database.metadata import metadata
+
+# Add your tables column here
+
+{table_normalized_name} = Table(
+    "{table_name}", metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True)
+)
+
+"""
+
+TABLES_DUNDER_IMPORT_TEMPLATE = """from .{table_file} import {table_file}"""
+
+TABLES_DUNDER_TEMPLATE = """{imports}
+
+__all__ = [{tables}]
+"""
