@@ -11,6 +11,8 @@ Simple API Structure Generator using tecnologies:
 
 - `create`: Creates the project structure and base classes
 
+  > Optional `--code` option auto opens code through a `code project_folder_name` command.
+
   ```bash
   api-project create
   ```
