@@ -61,8 +61,10 @@ class Files:
         return self.get_dir_dict(*path)[dirname]["_dir"]
 
     @staticmethod
-    def python_file(filename: str, *, private: bool = False):
-        response = f"{filename}.py"
+    def python_file(filename: str, *, private: bool = False, dunder: bool = False):
+        response = filename
         if private:
-            return f"_{response}"
-        return response
+            response= f"_{filename}"
+        if dunder:
+            response= f"__{filename}__"
+        return f"{response}.py"

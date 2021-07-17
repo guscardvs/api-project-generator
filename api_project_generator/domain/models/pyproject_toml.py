@@ -1,5 +1,5 @@
-from dataclasses import dataclass, field
 import re
+from dataclasses import dataclass, field
 from typing import Callable
 
 from api_project_generator.functions import get_python_version

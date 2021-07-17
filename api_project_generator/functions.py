@@ -1,11 +1,16 @@
+import os
 import re
 import sys
 from pathlib import Path
+from typing import Callable, Optional
 from unicodedata import normalize
 
 from git import GitConfigParser
+import typer
 
+from api_project_generator.files import Files
 from api_project_generator.services.repository import pypi_repository
+from api_project_generator.services import strings
 
 
 def get_curdir():
@@ -66,3 +71,43 @@ def to_snake(name: str):
 def clean_name(string: str):
     return normalize("NFC", string.strip().replace("-", "_").lower())
 
+
+def find_directory(path: Path, dir_name: str) -> Optional[Path]:
+    for item in path.glob("**{}".format(os.sep)):
+        if item.name == dir_name:
+            return item
+    return None
+
+
+def to_camel(string: str):
+    return "".join(item.title() for item in string.split("_"))
+
+
+def _default_public_name_parser(string: str):
+    return string.removeprefix("_").removesuffix(".py")
+
+
+def camel_public_name_parser(string: str) -> str:
+    return to_camel(to_snake(clean_name(string.removeprefix("_").removesuffix(".py"))))
+
+
+def update_dunder_file(
+    dunder_file: Path, public_name_parser: Callable[[str], str] = None
+):
+    dir = dunder_file.parent
+    files = [
+        file
+        for file in dir.glob("*")
+        if file.name != Files.python_file("init", dunder=True) and file.is_file()
+    ]
+    public_name_parser = public_name_parser or _default_public_name_parser
+    imports = "\n".join(
+        strings.DUNDER_IMPORT_TEMPLATE.format(
+            file=file.name.removesuffix(".py"),
+            public_name=public_name_parser(file.name),
+        )
+        for file in files
+    )
+    classes = ",".join('"{}"'.format(public_name_parser(file.name)) for file in files)
+    with dunder_file.open("w") as stream:
+        stream.write(strings.DUNDER_TEMPLATE.format(imports=imports, classes=classes))

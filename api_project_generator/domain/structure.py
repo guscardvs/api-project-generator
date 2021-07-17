@@ -304,6 +304,8 @@ class Structure:
         base = self.files.create_file(
             Files.python_file("base"), self.project_folder, self.dtos_folder
         )
+        self.files.create_dir("enums", self.project_folder, self.dtos_folder)
+        self.files.create_file(self.dunder_init,self.project_folder, self.dtos_folder, "enums")
         self._populate_dtos_files(base)
 
     def _populate_dtos_files(self, base: Path):
@@ -533,6 +535,9 @@ class Structure:
 
         # .coveragerc
         structure.create_coveragerc()
+
+        # .pylintrc
+        structure.create_pylintrc()
 
         # circus.ini
         structure.create_circus_ini()

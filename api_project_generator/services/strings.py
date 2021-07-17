@@ -1729,7 +1729,7 @@ DB_HOST=
 TABLE_TEMPLATE = """from sqlalchemy import Table, Column, Integer
 from {project_folder}.database.metadata import metadata
 
-# Add your tables column here
+# Add your table columns here
 
 {table_normalized_name} = Table(
     "{table_name}", metadata,
@@ -1738,9 +1738,32 @@ from {project_folder}.database.metadata import metadata
 
 """
 
-TABLES_DUNDER_IMPORT_TEMPLATE = """from .{table_file} import {table_file}"""
+DUNDER_IMPORT_TEMPLATE = """from .{file} import {public_name}"""
 
-TABLES_DUNDER_TEMPLATE = """{imports}
+DUNDER_TEMPLATE = """{imports}
 
-__all__ = [{tables}]
+__all__ = [{classes}]
 """
+
+ENUM_AUTO_OPTS_TEMPLATE = "{opt} = {idx}"
+
+ENUM_TEMPLATE ='''from enum import Enum
+
+# Add your enum choices here
+
+
+class {enum_name}(Enum):
+    """ Representation of {enum_name} """
+    
+    {auto_opts}
+'''
+
+DTO_TEMPLATE ='''from {project_folder}.dtos.base import DTO
+
+# Add your dto fields here
+
+class {dto_name}(DTO):
+    """ Representation of {dto_name} """
+    
+
+'''
