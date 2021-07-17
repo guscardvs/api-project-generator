@@ -1,4 +1,4 @@
-# Commands ran in this example
+# Commands executed in this example
 
 - Create Project structure and open in vscode
 
