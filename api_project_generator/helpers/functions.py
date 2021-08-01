@@ -8,7 +8,7 @@ from unicodedata import normalize
 
 from git import GitConfigParser
 
-from api_project_generator.services.repository import pypi_repository
+from .repository import pypi_repository
 
 from . import strings
 from .files import Files
