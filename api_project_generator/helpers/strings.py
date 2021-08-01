@@ -30,9 +30,9 @@ def test_{project_folder}():
 """
 
 DUNDER_PROVIDER = """from ._http import HttpProvider
-from ._database import DatabaseProvider
+from ._database import DatabaseProvider, DriverTypes
 
-__all__ = ["HttpProvider", "DatabaseProvider"]
+__all__ = ["HttpProvider", "DatabaseProvider", "DriverTypes"]
 
 """
 
