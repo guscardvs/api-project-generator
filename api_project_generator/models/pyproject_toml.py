@@ -16,6 +16,15 @@ class PyprojectToml:
     _dependencies: set[str] = field(default_factory=set)
     _dev_dependencies: set[str] = field(default_factory=set)
     _optional_dependencies: set[str] = field(default_factory=set)
+    db_type: DbType = DbType.MYSQL
+
+    def __post_init__(self):
+        if self.db_type == DbType.POSTGRES.name:
+            self._dependencies.remove("aiomysql")
+        else:
+            self._dependencies.remove("asyncpg")
+            self._dependencies.remove("psycopg2-binary")
+            self._optional_dependencies.remove("psycopg2")
 
     @property
     def dependencies(self):
@@ -43,14 +52,8 @@ class PyprojectToml:
     
     
 
-    def get_dependencies(self, *, dev: bool, parser: Callable[[str], str], db_type: str = ""):
+    def get_dependencies(self, *, dev: bool, parser: Callable[[str], str]):
         deps = self.dependencies if not dev else self.dev_dependencies
-        if db_type:
-            if db_type == DbType.POSTGRES.name:
-                deps.remove("aiomysql")
-            else:
-                deps.remove("asyncpg")
-                deps.remove("psycopg2")
         res = "\n".join(parser(item) for item in deps) 
         return (f"{get_python_version()}\n" + res) if not dev else res
 
