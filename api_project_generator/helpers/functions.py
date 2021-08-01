@@ -1,16 +1,17 @@
 import os
 import re
 import sys
+import subprocess
 from pathlib import Path
 from typing import Callable, Optional
 from unicodedata import normalize
 
 from git import GitConfigParser
-import typer
 
-from api_project_generator.files import Files
 from api_project_generator.services.repository import pypi_repository
-from api_project_generator.services import strings
+
+from . import strings
+from .files import Files
 
 
 def get_curdir():
@@ -111,3 +112,19 @@ def update_dunder_file(
     classes = ",".join('"{}"'.format(public_name_parser(file.name)) for file in files)
     with dunder_file.open("w") as stream:
         stream.write(strings.DUNDER_TEMPLATE.format(imports=imports, classes=classes))
+
+
+def open_in_code(name: str):
+    if "win" not in sys.platform.lower():
+        args = ["code", name]
+    else:
+        args = ["code.cmd", name]
+    try:
+        subprocess.run(args)
+    except FileNotFoundError:
+        try:
+            args = ["code-insiders", name]
+            subprocess.run(args)
+        except FileNotFoundError:
+            return False
+    return True

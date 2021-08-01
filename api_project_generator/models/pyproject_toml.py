@@ -1,8 +1,9 @@
+from api_project_generator.models.project_info import DbType
 import re
 from dataclasses import dataclass, field
 from typing import Callable
 
-from api_project_generator.functions import get_python_version
+from api_project_generator.helpers.functions import get_python_version
 
 
 @dataclass
@@ -32,8 +33,14 @@ class PyprojectToml:
     def dev_dependencies(self, string: str):
         self._dev_dependencies.add(string)
 
-    def get_dependencies(self, *, dev: bool, parser: Callable[[str], str]):
+    def get_dependencies(self, *, dev: bool, parser: Callable[[str], str], db_type: str = ""):
         deps = self.dependencies if not dev else self.dev_dependencies
+        if db_type:
+            if db_type == DbType.POSTGRES.name:
+                deps.remove("aiomysql")
+            else:
+                deps.remove("asyncpg")
+                deps.remove("psycopg2")
         res = "\n".join(parser(item) for item in deps) 
         return (f"{get_python_version()}\n" + res) if not dev else res
 

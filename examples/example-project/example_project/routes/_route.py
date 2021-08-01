@@ -1,6 +1,6 @@
+from example_project.providers import DatabaseProvider
 from fastapi import APIRouter, Depends
 
-from example_project.providers import DatabaseProvider
 from .dependencies import get_database_provider
 
 router = APIRouter()

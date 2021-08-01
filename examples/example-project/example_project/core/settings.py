@@ -2,7 +2,6 @@
 from pathlib import Path
 
 from dotenv import load_dotenv
-
 from example_project.core.log import set_logger
 from example_project.utils import Env, Environment
 

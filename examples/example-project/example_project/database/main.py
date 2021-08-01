@@ -1,4 +1,5 @@
 from example_project.core.settings import BASE_DIR
+
 from ._model_finder import ModelFinder
 from .metadata import metadata
 

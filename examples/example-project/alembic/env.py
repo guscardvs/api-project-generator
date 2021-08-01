@@ -3,8 +3,8 @@
 from logging.config import fileConfig
 
 from alembic import context
-from example_project.providers import DatabaseProvider
 from example_project.database.main import get_metadata
+from example_project.providers import DatabaseProvider
 from sqlalchemy import engine_from_config, pool
 
 # this is the Alembic Config object, which provides

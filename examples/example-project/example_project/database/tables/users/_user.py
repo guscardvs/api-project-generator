@@ -1,5 +1,5 @@
-from sqlalchemy import Table, Column, Integer
 from example_project.database.metadata import metadata
+from sqlalchemy import Column, Integer, Table
 
 # Add your table columns here
 

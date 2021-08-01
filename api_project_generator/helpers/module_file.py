@@ -2,8 +2,8 @@ from pathlib import Path
 
 import typer
 
-from api_project_generator.files import Files
-from api_project_generator.functions import clean_name, to_snake
+from .files import Files
+from .functions import clean_name, to_snake
 
 
 class ModuleFile:

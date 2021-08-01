@@ -4,8 +4,8 @@ from functools import wraps
 from typing import Any, AsyncGenerator, Callable, Optional, TypeVar
 from urllib.parse import urlparse
 
-from example_project.core.settings import logger
 from aiohttp import ClientSession, ContentTypeError
+from example_project.core.settings import logger
 from typing_extensions import Concatenate, ParamSpec
 
 _Params = ParamSpec("_Params")

@@ -122,67 +122,77 @@ class HttpProvider:
 
 """
 
-DATABASE_PROVIDER = """from contextlib import asynccontextmanager
-from typing import Literal, Optional
+DATABASE_PROVIDER = """from contextlib import asynccontextmanager, contextmanager
+import enum
+from typing import Optional
 
 from {project_folder}.core import settings
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy import create_engine, text
+
+class DriverTypes(enum.Enum):
+    POSTGRES = ("postgresql", "asyncpg", "psycopg2")
+    MYSQL = ("mysql", "aiomysql", "pymysql")
+
+    def get_driver_string(self, is_async: bool):
+        name, aio, sync = self.value
+        return "{{name}}+{{driver}}".format(name=name, driver=aio if is_async else sync)
 
 
 class DatabaseProvider:
     def __init__(self, conn_uri: Optional[str] = None) -> None:
-        self.engine = self._create_engine(conn_uri)
-        self.sessionmaker = self._create_sessionmaker()
+        self.engine, self.sync_engine = self._create_engine(conn_uri)
 
     @staticmethod
-    def get_connection_uri():
-        return "mysql://{{user}}:{{passwd}}@{{host}}:3306/{{name}}".format(
+    def get_connection_uri(driver: str):
+        return "{{driver}}://{{user}}:{{passwd}}@{{host}}:{{port}}/{{name}}".format(
+            driver=driver,
             user=settings.DB_USER,
             passwd=settings.DB_PASSWORD,
             host=settings.DB_HOST,
             name=settings.DB_NAME,
+            port=settings.DB_PORT,
         )
 
     @classmethod
-    def get_driver_conn_uri(cls, driver: Literal["aiomysql", "pymysql"]):
-        return cls.get_connection_uri().replace("mysql", f"mysql+{{driver}}")
+    def get_driver_conn_uri(cls, driver: DriverTypes, is_async: bool):
+        return cls.get_connection_uri(driver.get_driver_string(is_async))
 
     def _create_engine(self, conn_uri: Optional[str]):
         if conn_uri:
-            return create_async_engine(conn_uri)
+            return create_async_engine(conn_uri), create_engine(conn_uri)
         return create_async_engine(
-            self.get_driver_conn_uri("aiomysql"), pool_size=20, max_overflow=0
-        )
-
-    def _create_sessionmaker(self):
-        return sessionmaker(
-            self.engine,
-            expire_on_commit=False,
-            class_=AsyncSession,
-            autocommit=False,
-            autoflush=False,
-        )
-
-    @asynccontextmanager
-    async def get_session(self):
-        async with self.sessionmaker() as session:
-            yield session
+            self.get_driver_conn_uri(DriverTypes.{db_type}, is_async=True), pool_size=20, max_overflow=0
+        ), create_engine(self.get_driver_conn_uri(DriverTypes.{db_type}, is_async=False), pool_size=20, max_overflow=0)
 
     @asynccontextmanager
     async def begin(self):
-        async with self.sessionmaker() as session:
-            async with session.begin():
-                yield session
+        async with self.engine.begin() as conn:
+            yield conn
+    
+    @contextmanager
+    def sync(self):
+        with self.sync_engine.begin() as conn:
+            yield conn
 
     async def healthcheck(self):
         try:
-            async with self.begin() as session:
-                await session.execute("SELECT 1")
+            async with self.begin() as conn:
+                await conn.execute(text("SELECT 1"))
             return True
         except:
             settings.logger.exception()
             return False
+        
+    def sync_healthcheck(self):
+        try:
+            with self.sync() as conn:
+                conn.execute(text("SELECT 1"))
+            return False
+        except:
+            settings.logger.exception()
+            return False
+
 
 """
 
@@ -1520,30 +1530,30 @@ def get_metadata():
 
 ALEMBIC_README = """Generic single-database configuration."""
 
-SCRIPT_PY_MAKO = '''"""${{message}}
+SCRIPT_PY_MAKO = '''"""${message}
 
-Revision ID: ${{up_revision}}
-Revises: ${{down_revision | comma,n}}
-Create Date: ${{create_date}}
+Revision ID: ${up_revision}
+Revises: ${down_revision | comma,n}
+Create Date: ${create_date}
 
 """
 from alembic import op
 import sqlalchemy as sa
-${{imports if imports else ""}}
+${imports if imports else ""}
 
 # revision identifiers, used by Alembic.
-revision = ${{repr(up_revision)}}
-down_revision = ${{repr(down_revision)}}
-branch_labels = ${{repr(branch_labels)}}
-depends_on = ${{repr(depends_on)}}
+revision = ${repr(up_revision)}
+down_revision = ${repr(down_revision)}
+branch_labels = ${repr(branch_labels)}
+depends_on = ${repr(depends_on)}
 
 
 def upgrade():
-    ${{upgrades if upgrades else "pass"}}
+    ${upgrades if upgrades else "pass"}
 
 
 def downgrade():
-    ${{downgrades if downgrades else "pass"}}
+    ${downgrades if downgrades else "pass"}
 '''
 
 ALEMBIC_ENV = '''# type: ignore
@@ -1551,7 +1561,7 @@ ALEMBIC_ENV = '''# type: ignore
 from logging.config import fileConfig
 
 from alembic import context
-from {project_folder}.{providers_folder} import DatabaseProvider
+from {project_folder}.{providers_folder} import DatabaseProvider, DriverTypes
 from {project_folder}.{database_folder}.main import get_metadata
 from sqlalchemy import engine_from_config, pool
 
@@ -1587,7 +1597,7 @@ def run_migrations_offline():
     script output.
 
     """
-    url = DatabaseProvider.get_driver_conn_uri("pymysql")
+    url = DatabaseProvider.get_driver_conn_uri(DriverTypes.{db_type}, False)
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -1607,7 +1617,7 @@ def run_migrations_online():
 
     """
     cfg = config.get_section(config.config_ini_section)
-    cfg["sqlalchemy.url"] = DatabaseProvider.get_driver_conn_uri("pymysql")
+    cfg["sqlalchemy.url"] = DatabaseProvider.get_driver_conn_uri(DriverTypes.{db_type}, False)
     connectable = engine_from_config(
         cfg,
         prefix="sqlalchemy.",
@@ -1634,7 +1644,7 @@ ALEMBIC_INI = """# A generic, single database configuration.
 script_location = ./{alembic_folder}
 
 # template used to generate migration files
-# file_template = %%(rev)s_%%(slug)s
+# file_template = %(rev)s_%(slug)s
 
 # sys.path path, will be prepended to sys.path if present.
 # defaults to the current working directory.
@@ -1662,7 +1672,7 @@ script_location = ./{alembic_folder}
 # version location specification; this defaults
 # to ./alemibc/versions.  When using multiple version
 # directories, initial revisions must be specified with --version-path
-# version_locations = %%(here)s/bar %%(here)s/bat ./alemibc/versions
+# version_locations = %(here)s/bar %(here)s/bat ./alemibc/versions
 
 # the output encoding used when revision files
 # are written from script.py.mako
@@ -1714,7 +1724,7 @@ level = NOTSET
 formatter = generic
 
 [formatter_generic]
-format = %%(levelname)-5.5s [%%(name)s] %%(message)s
+format = %(levelname)-5.5s [%(name)s] %(message)s
 datefmt = %H:%M:%S
 """
 

@@ -1,8 +1,8 @@
+from example_project import routes
+from example_project.exc import set_api_error_handler
+from example_project.providers import DatabaseProvider, HttpProvider
 from fastapi import FastAPI
 
-from example_project import routes
-from example_project.providers import DatabaseProvider, HttpProvider
-from example_project.exc import set_api_error_handler
 
 def create_startup_handler(_app: FastAPI):
     def _startup():
