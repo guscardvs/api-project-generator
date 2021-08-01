@@ -19,6 +19,7 @@ def create_api(code: bool, info: project_info.ProjectInfo):
         info.name,
         info.version,
         info.description,
+        db_type=info.db_type,
         fullname=info.fullname,
         email=info.email,
         _dependencies=dependencies.DEFAULT_API_DEPENDENCIES,
@@ -72,7 +73,6 @@ class ApiStructure:
                     dependencies=self.pyproject_toml.get_dependencies(
                         dev=False,
                         parser=functions.get_dependency_string,
-                        db_type=self.db_type.name,
                     )
                     + self.pyproject_toml.get_optional_dependencies(
                         parser=lambda lib: functions.get_dependency_string(lib, True)

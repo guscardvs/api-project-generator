@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "api-project-generator"
-version = "0.3.1"
+version = "0.3.2"
 description = ""
 authors = ["Gustavo Correa <self.gustavocorrea@gmail.com>"]
 readme = "README.md"
