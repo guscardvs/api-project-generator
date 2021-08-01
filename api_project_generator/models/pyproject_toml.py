@@ -32,6 +32,16 @@ class PyprojectToml:
     @dev_dependencies.setter
     def dev_dependencies(self, string: str):
         self._dev_dependencies.add(string)
+    
+    @property
+    def optional_dependencies(self):
+        return list(self._optional_dependencies)
+
+    @optional_dependencies.setter
+    def optional_dependencies(self, string: str):
+        self._optional_dependencies.add(string)
+    
+    
 
     def get_dependencies(self, *, dev: bool, parser: Callable[[str], str], db_type: str = ""):
         deps = self.dependencies if not dev else self.dev_dependencies

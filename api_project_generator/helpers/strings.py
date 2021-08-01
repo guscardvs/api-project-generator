@@ -14,7 +14,7 @@ authors = ["{fullname} <{email}>"]
 start = "{project_folder}.main:main"
 
 [tool.poetry.extras]
-deploy = ["httptools", "uvloop"]
+deploy = [{optional_dependencies}]
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

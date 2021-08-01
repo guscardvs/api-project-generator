@@ -27,6 +27,13 @@ def create_api(code: bool, info: project_info.ProjectInfo):
     )
     typer.echo(typer.style("Creating project structure", fg=typer.colors.GREEN))
     curdir = functions.get_curdir()
+    folder = (curdir / info.name)
+    while folder.exists():
+        if folder.is_dir():
+            if not any(folder.iterdir()):
+                break
+        typer.echo(typer.style("{folder} already exists".format(folder=info.name), fg=typer.colors.RED))
+        raise typer.Exit(1)
     ApiStructure.create(curdir, info.name, pyproject, info.db_type)
 
     typer.echo(typer.style("Initializing git", fg=typer.colors.GREEN))
@@ -73,6 +80,7 @@ class ApiStructure:
                     dev_dependencies=self.pyproject_toml.get_dependencies(
                         dev=True, parser=functions.get_dependency_string
                     ),
+                    optional_dependencies=", ".join(f'"{item}"' for item in self.pyproject_toml.optional_dependencies)
                 )
             )
 
