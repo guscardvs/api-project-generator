@@ -19,7 +19,7 @@ class PyprojectToml:
     db_type: DbType = DbType.MYSQL
 
     def __post_init__(self):
-        if self.db_type == DbType.POSTGRES.name:
+        if self.db_type == DbType.POSTGRES:
             self._dependencies.remove("aiomysql")
         else:
             self._dependencies.remove("asyncpg")
