@@ -43,7 +43,7 @@ class ApiStructure:
         base_dir: pathlib.Path,
         project_name: str,
         pyproject_toml: pyproject_toml.PyprojectToml,
-        db_type: str,
+        db_type: project_info.DbType,
     ) -> None:
         self.files = files.Files(base_dir / project_name)
         self.project_name = project_name
@@ -65,7 +65,7 @@ class ApiStructure:
                     dependencies=self.pyproject_toml.get_dependencies(
                         dev=False,
                         parser=functions.get_dependency_string,
-                        db_type=self.db_type,
+                        db_type=self.db_type.name,
                     )
                     + self.pyproject_toml.get_optional_dependencies(
                         parser=lambda lib: functions.get_dependency_string(lib, True)
@@ -105,7 +105,7 @@ class ApiStructure:
 
     @property
     def utils_folder(self):
-        return "utils"
+        return "helpers"
 
     @property
     def main_file(self):
@@ -219,7 +219,7 @@ class ApiStructure:
             stream.write(
                 strings.DATABASE_PROVIDER.format(
                     project_folder=self.project_folder,
-                    db_type=self.db_type,
+                    db_type=self.db_type.name,
                 )
             )
 
@@ -240,7 +240,9 @@ class ApiStructure:
         with self._get_file_stream(settings) as stream:
             stream.write(
                 strings.SETTINGS_FILE.format(
-                    project_folder=self.project_folder, utils_folder=self.utils_folder
+                    project_folder=self.project_folder,
+                    utils_folder=self.utils_folder,
+                    db_port=self.db_type.get_db_port(),
                 )
             )
         with self._get_file_stream(log) as stream:
@@ -460,17 +462,35 @@ class ApiStructure:
             self.project_folder,
             self.database_folder,
         )
+        database_filters_file = self.files.create_file(
+            files.Files.python_file("filters"),
+            self.project_folder,
+            self.database_folder,
+        )
+        database_helpers_file = self.files.create_file(
+            files.Files.python_file("helpers"),
+            self.project_folder,
+            self.database_folder,
+        )
         self.files.create_dir("tables", self.project_folder, self.database_folder)
         self.files.create_file(
             self.dunder_init, self.project_folder, self.database_folder, "tables"
         )
-        self._populate_database_files(model_finder, metadata, database_main_file)
+        self._populate_database_files(
+            model_finder,
+            metadata,
+            database_main_file,
+            database_filters_file,
+            database_helpers_file,
+        )
 
     def _populate_database_files(
         self,
         model_finder: pathlib.Path,
         metadata: pathlib.Path,
         database_main_file: pathlib.Path,
+        database_filters_file: pathlib.Path,
+        database_helpers_file: pathlib.Path,
     ):
         with self._get_file_stream(metadata) as stream:
             stream.write(strings.METADATA_FILE)
@@ -481,6 +501,12 @@ class ApiStructure:
                 strings.DATABASE_MAIN_FILE.format(
                     project_folder=self.project_folder, core_folder=self.core_folder
                 )
+            )
+        with self._get_file_stream(database_filters_file) as stream:
+            stream.write(strings.DATABASE_FILTERS)
+        with self._get_file_stream(database_helpers_file) as stream:
+            stream.write(
+                strings.DATABASE_HELPERS_FILE.format(project_folder=self.project_folder)
             )
 
     def create_alembic_folder(self):
@@ -513,7 +539,7 @@ class ApiStructure:
                     project_folder=self.project_folder,
                     providers_folder=self.providers_folder,
                     database_folder=self.database_folder,
-                    db_type=self.db_type
+                    db_type=self.db_type.name,
                 )
             )
         with self._get_file_stream(alembic_mako) as stream:
@@ -532,7 +558,7 @@ class ApiStructure:
         base_dir: pathlib.Path,
         project_name: str,
         pyproject_toml: pyproject_toml.PyprojectToml,
-        db_type: str,
+        db_type: project_info.DbType,
     ):
         structure = cls(base_dir, project_name, pyproject_toml, db_type)
 

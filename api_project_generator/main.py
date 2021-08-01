@@ -12,7 +12,10 @@ app = get_application()
 
 
 @app.command("create:api")
-def create(db_type: project_info.DbType = typer.Option(project_info.DbType.MYSQL) ,code: bool = typer.Option(False)):
+def create(
+    db_type: project_info.DbType = typer.Option(project_info.DbType.MYSQL),
+    code: bool = typer.Option(False),
+):
     project_name = typer.prompt("Digite o nome do projeto")
     version = typer.prompt(
         "Digite a versão inicial do projeto",
@@ -26,20 +29,22 @@ def create(db_type: project_info.DbType = typer.Option(project_info.DbType.MYSQL
     typer
     return commands.create_api(
         code,
-        project_info.ProjectInfo(project_name, version, description, fullname, email, db_type.name),
+        project_info.ProjectInfo(
+            project_name, version, description, fullname, email, db_type
+        ),
     )
 
 
 @app.command("create:table")
 def create_table(table_module: str, table_name: str = typer.Argument("")):
-    while not table_name:
+    if not table_name:
         table_name = typer.prompt("Digite o nome da tabela")
     return commands.create_table(table_module, table_name)
 
 
 @app.command("create:dto")
 def create_dto(dto_module: str, dto_name: str = typer.Argument("")):
-    while not dto_name:
+    if not dto_name:
         dto_name = typer.prompt("Digite o nome do DTO")
     return commands.create_dto(dto_module, dto_name)
 
@@ -48,6 +53,6 @@ def create_dto(dto_module: str, dto_name: str = typer.Argument("")):
 def create_enum(
     enum_name: str = typer.Argument(""), auto_opts: Optional[list[str]] = None
 ):
-    while not enum_name:
+    if not enum_name:
         enum_name = typer.prompt("Digite o nome do enum")
     return commands.create_enum(enum_name, auto_opts)

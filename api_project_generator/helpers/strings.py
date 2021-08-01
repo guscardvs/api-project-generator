@@ -217,7 +217,8 @@ environment.set_logger(logger)
 DB_NAME = environment.get("DB_NAME", dev="db-name")
 DB_USER = required_env("DB_USER", dev="db-user")
 DB_PASSWORD = required_env("DB_PASSWORD", dev="db-pass")
-DB_HOST =required_env("DB_HOST", dev="localhost")
+DB_HOST = required_env("DB_HOST", dev="localhost")
+DB_PORT = environment.get("DB_PORT", dev="{db_port}", parser=int)
 
 """
 
@@ -1528,6 +1529,152 @@ def get_metadata():
     return metadata
 """
 
+DATABASE_FILTERS = """from abc import abstractmethod
+import operator
+from dataclasses import dataclass
+from enum import Enum
+from typing import Any, Callable, Optional, TypeVar, Union
+
+from sqlalchemy import Column, Table, and_, false, or_, true, Boolean, DateTime
+from sqlalchemy.orm.relationships import RelationshipProperty
+from sqlalchemy.sql.elements import BooleanClauseList
+
+
+class Filter:
+    def where(self, table: Table):
+        pass
+
+    @abstractmethod
+    def __bool__(self):
+        ...
+
+
+class CompareOptions(str, Enum):
+    EQUAL = "eq"
+    NOT_EQUAL = "ne"
+    GREATER = "gt"
+    GREATER_EQUAL = "ge"
+    LESSER = "lt"
+    LESSER_EQUAL = "le"
+    CONTAINS = "contains"
+    ICONTAINS = "icontains"
+    NULL = "null"
+
+
+@dataclass
+class FieldFilter(Filter):
+    field: str
+    value: Optional[Any]
+    comparison: CompareOptions = CompareOptions.EQUAL
+    enum_value: bool = False
+    sql_func: Optional[Callable[[Column], Any]] = None
+
+    def __eq__(self, filter: Filter) -> bool:
+        if not isinstance(filter, type(self)):
+            return False
+        return (self.field, self.value, self.comparison) == (
+            filter.field,
+            filter.value,
+            filter.comparison,
+        )
+
+    def __post_init__(self):
+        if isinstance(self.value, bool) and self.comparison is not CompareOptions.NULL:
+            self.value = true() if self.value else false()
+        if isinstance(self.value, Enum):
+            if self.enum_value:
+                self.value = self.value and self.value.value
+            else:
+                self.value = self.value and self.value.name
+
+    def where(self, table: Table):
+        return self.attr(table)  # type: ignore
+
+    def attr(self, table: Table):
+        attr = self._attr(table, self.field)
+        if not self:
+            return True
+        if self.sql_func:
+            attr = self.sql_func(attr)  # type: ignore
+        if self.comparison not in [
+            CompareOptions.CONTAINS,
+            CompareOptions.ICONTAINS,
+            CompareOptions.NULL,
+        ]:
+            return getattr(operator, self.comparison.value)(attr, self.value)
+        if self.comparison == CompareOptions.NULL:
+            return attr.is_(None) if self.value else attr.is_not(None)
+        if self.comparison == CompareOptions.CONTAINS:
+            return attr.like(f"%{self.value}%")
+        return attr.ilike(f"%{self.value}%")
+
+    @staticmethod
+    def _attr(table: Table, field: str) -> Union[Column, RelationshipProperty]:
+        result = getattr(table.c, field, None)
+        if result is None:
+            raise NotImplementedError
+        return result
+
+    def __bool__(self):
+        return self.value is not None
+
+
+@dataclass(init=False)
+class FilterJoins(Filter):
+    operator: type[BooleanClauseList]
+    filters: tuple[Filter, ...]
+
+    def __init__(self, *filters: Filter) -> None:
+        self.filters = filters
+
+    def where(self, table: Table):
+        return self.operator(*(f.where(table) for f in self.filters))
+
+    def __bool__(self):
+        return True
+
+
+class OrFilter(FilterJoins):
+    @property
+    def operator(self):
+        return or_
+
+
+class AndFilter(FilterJoins):
+    @property
+    def operator(self):
+        return and_
+
+"""
+
+DATABASE_HELPERS_FILE = """from typing import TypeVar, Callable
+
+from sqlalchemy import Column, func
+from sqlalchemy.engine import Row
+
+from {project_folder}.dtos.base import DTO
+
+
+DTO_T = TypeVar("DTO_T", bound=DTO)
+
+
+def to_dto(klass: type[DTO_T]) -> Callable[[Row], DTO_T]:
+    def _to_dto(item: Row):
+        return klass.parse_obj(dict(item))
+
+    return _to_dto
+
+
+
+def day(column: Column):
+    return func.day(column)
+
+
+def month(column: Column):
+    return func.month(column)
+"""
+
+
 ALEMBIC_README = """Generic single-database configuration."""
 
 SCRIPT_PY_MAKO = '''"""${message}
@@ -1757,7 +1904,7 @@ __all__ = [{classes}]
 
 ENUM_AUTO_OPTS_TEMPLATE = "{opt} = {idx}"
 
-ENUM_TEMPLATE ='''from enum import Enum
+ENUM_TEMPLATE = '''from enum import Enum
 
 # Add your enum choices here
 
@@ -1768,7 +1915,7 @@ class {enum_name}(Enum):
     {auto_opts}
 '''
 
-DTO_TEMPLATE ='''from {project_folder}.dtos.base import DTO
+DTO_TEMPLATE = '''from {project_folder}.dtos.base import DTO
 
 # Add your dto fields here
 
