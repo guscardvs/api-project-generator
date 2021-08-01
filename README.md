@@ -5,7 +5,7 @@ Simple API Structure Generator using tecnologies:
 - FastAPI
 - SQLAlchemy
 - aiohttp
-- aiomysql
+- aiomysql or asyncpg
 
 ## Commands
 
