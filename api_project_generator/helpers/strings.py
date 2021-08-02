@@ -327,6 +327,8 @@ class Environment:
 """
 
 DUNDER_ROUTES = """from .{main_router_file} import router
+
+
 __all__ = ["router"] 
 """
 
@@ -367,8 +369,9 @@ def get_database_provider(request: Request) -> DatabaseProvider:
 """
 
 BASE_DTO_FILE = """import re
+from typing import Generic, TypeVar, TYPE_CHECKING
 
-from pydantic.main import BaseModel
+from pydantic import BaseModel, create_model
 
 _to_camel_exp = re.compile("_([a-zA-Z])")
 
@@ -382,6 +385,18 @@ class DTO(BaseModel):
         @classmethod
         def alias_generator(cls, string):
             return re.sub(_to_camel_exp, lambda match: match[1].upper(), string)
+
+if TYPE_CHECKING:
+    DTO_T = TypeVar("DTO_T", bound=DTO)
+
+
+    class _EmbedArray(Generic[DTO_T]):
+        data: list[DTO_T]
+
+
+def embed_array(dto: "type[DTO_T]") -> "_EmbedArray[DTO_T]":
+    return create_model(f"{{dto.__qualname__}}EmbedArray", __module__=dto.__module__, data=(list[dto], ...))  # type: ignore
+
 """
 
 EXCEPTION_HANDLERS_FILE = """from fastapi import Request, FastAPI
@@ -1653,6 +1668,7 @@ from sqlalchemy import Column, func
 from sqlalchemy.engine import Row
 
 from {project_folder}.dtos.base import DTO
+from {project_folder} import providers, exc
 
 
 DTO_T = TypeVar("DTO_T", bound=DTO)
@@ -1672,6 +1688,49 @@ def day(column: Column):
 
 def month(column: Column):
     return func.month(column)
+
+
+async def get(
+    database_provider: providers.DatabaseProvider, table: Table, **where
+) -> Optional[Row]:
+    async with database_provider.begin() as conn:
+        result = await conn.execute(
+            table.select().where(
+                *(getattr(table, key) == value for key, value in where)
+            )
+        )
+        return result.first()
+
+
+async def get_or_raise(
+    database_provider: providers.DatabaseProvider, table: Table, **where
+) -> dict:
+    result = await get(database_provider, table, **where)
+    if not result:
+        raise exc.DoesNotExist
+    return dict(result)
+
+
+def sync_get(
+    database_provider: providers.DatabaseProvider, table: Table, **where
+) -> Optional[Row]:
+    with database_provider.sync() as conn:
+        result = conn.execute(
+            table.select().where(
+                *(getattr(table, key) == value for key, value in where)
+            )
+        )
+        return result.first()
+
+
+def sync_get_or_raise(
+    database_provider: providers.DatabaseProvider, table: Table, **where
+) -> dict:
+    result = sync_get(database_provider, table, **where)
+    if not result:
+        raise exc.DoesNotExist
+    return dict(result)
+
 """
 
 
@@ -1924,3 +1983,196 @@ class {dto_name}(DTO):
     
 
 '''
+
+ASYNC_REPOSITORY_BOILERPLATE = """from {project_folder} import exc, providers
+from sqlalchemy.exc import IntegrityError
+from {project_folder}.database import helpers, filters
+from {project_folder}.database.tables.{module_name} import {table_name}
+from {project_folder}.dtos.{module_name} import {entity_name}, {entity_name}In, {entity_name}Edit
+
+
+class {entity_name}Repository:
+    def __init__(self, database_provider: providers.DatabaseProvider) -> None:
+        self.database_provider = database_provider
+
+    async def create(self, payload: {entity_name}In) -> None:
+        query = {table_name}.insert().values(payload.dict())
+        async with self.database_provider.begin() as conn:
+            try:
+                await conn.execute(query)
+            except IntegrityError as err:
+                raise exc.AlreadyExists from err
+
+    async def get(self, id: int):
+        return await helpers.get_or_raise(self.database_provider, {table_name}, id=id)
+
+    async def list(self, *where: filters.Filter):
+        query = {table_name}.select().where(*(f.where({table_name}) for f in where))
+        async with self.database_provider.begin() as conn:
+            result = await conn.execute(query)
+            return {{"data": list(map(dict, result.all()))}}
+
+    async def update(self, id: int, payload: {entity_name}Edit):
+        await helpers.get_or_raise(self.database_provider, {table_name}, id=id)
+        query = {table_name}.update().values(payload.dict()).where({table_name}.c.id == id)
+        async with self.database_provider.begin() as conn:
+            await conn.execute(query)
+
+    async def delete(self, id: int):
+        await helpers.get_or_raise(self.database_provider, {table_name}, id=id)
+        query = {table_name}.delete().where({table_name}.c.id == id)
+        async with self.database_provider.begin() as conn:
+            await conn.execute(query)
+"""
+
+SYNC_REPOSITORY_BOILERPLATE = """from {project_folder} import exc, providers
+from sqlalchemy.exc import IntegrityError
+from {project_folder}.database import helpers, filters
+from {project_folder}.database.tables.{module_name} import {table_name}
+from {project_folder}.dtos.{module_name} import {entity_name}, {entity_name}In, {entity_name}Edit
+
+
+class {entity_name}Repository:
+    def __init__(self, database_provider: providers.DatabaseProvider) -> None:
+        self.database_provider = database_provider
+
+    def create(self, payload: {entity_name}In) -> None:
+        query = {table_name}.insert().values(payload.dict())
+        with self.database_provider.sync() as conn:
+            try:
+                conn.execute(query)
+            except IntegrityError as err:
+                raise exc.AlreadyExists from err
+
+    def get(self, id: int):
+        return helpers.sync_get_or_raise(self.database_provider, {table_name}, id=id)
+
+    def list(self, *where: filters.Filter):
+        query = {table_name}.select().where(*(f.where({table_name}) for f in where))
+        with self.database_provider.sync() as conn:
+            result = conn.execute(query)
+            return {{"data": list(map(dict, result.all()))}}
+
+    def update(self, id: int, payload: {entity_name}Edit):
+        helpers.sync_get_or_raise(self.database_provider, {table_name}, id=id)
+        query = {table_name}.update().values(payload.dict()).where({table_name}.c.id == id)
+        with self.database_provider.sync() as conn:
+            conn.execute(query)
+
+    def delete(self, id: int):
+        helpers.sync_get_or_raise(self.database_provider, {table_name}, id=id)
+        query = {table_name}.delete().where({table_name}.c.id == id)
+        with self.database_provider.sync() as conn:
+            conn.execute(query)
+
+"""
+
+
+ASYNC_ROUTE_BOILERPLATE = """
+from fastapi import APIRouter, Body, Depends, Path, Query, Response, status
+from {project_folder}.database.repositories import {entity_name}Repository
+from {project_folder}.dtos import {module_name}
+from {project_folder}.routes import dependencies
+from {project_folder} import providers
+
+
+{entity_lower}_router = APIRouter(prefix="/{entity_lower}")
+
+
+@{entity_lower}_router.get("/{{id}}/", response_model={module_name}.{entity_name})
+async def get_{entity_lower}(
+    id: int = Path(...),
+    database_provider: providers.DatabaseProvider = Depends(
+        dependencies.get_database_provider
+    ),
+):
+    return await {entity_name}Repository(database_provider).get(id)
+
+
+@{entity_lower}_router.get("/", response_model={module_name}.{entity_name}EmbedArray)
+async def list_{entity_lower}s(
+    database_provider: providers.DatabaseProvider = Depends(
+        dependencies.get_database_provider
+    ),
+):  # add filters as query
+    return await {entity_name}Repository(database_provider).list()
+
+@{entity_lower}_router.post("/")
+async def create_{entity_lower}(payload: {module_name}.{entity_name}In, database_provider: providers.DatabaseProvider = Depends(dependencies.get_database_provider)):
+    await {entity_name}Repository(database_provider).create(payload)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+@{entity_lower}_router.put("/{{id}}/")
+async def edit_{entity_lower}(id: int = Path(...), payload: {module_name}.{entity_name}Edit = Body(...), database_provider: providers.DatabaseProvider = Depends(dependencies.get_database_provider)):
+    await {entity_name}Repository(database_provider).update(id, payload)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@{entity_lower}_router.delete("/{{id}}/")
+async def delete_{entity_lower}(
+    id: int = Path(...),
+    database_provider: providers.DatabaseProvider = Depends(
+        dependencies.get_database_provider
+    ),
+):
+    await {entity_name}Repository(database_provider).delete(id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+"""
+
+SYNC_ROUTE_BOILERPLATE = """
+from fastapi import APIRouter, Body, Depends, Path, Query, Response, status
+from {project_folder}.database.repositories import {entity_name}Repository
+from {project_folder}.dtos import {module_name}
+from {project_folder}.routes import dependencies
+from {project_folder} import providers
+
+
+{entity_lower}_router = APIRouter(prefix="/{entity_lower}")
+
+@{entity_lower}_router.get("/{{id}}/", response_model={module_name}.{entity_name})
+def get_{entity_lower}(
+    id: int = Path(...),
+    database_provider: providers.DatabaseProvider = Depends(
+        dependencies.get_database_provider
+    ),
+):
+    return {entity_name}Repository(database_provider).get(id)
+
+
+@{entity_lower}_router.get("/", response_model={module_name}.{entity_name}EmbedArray)
+def list_{entity_lower}s(
+    database_provider: providers.DatabaseProvider = Depends(
+        dependencies.get_database_provider
+    ),
+):  # add filters as query
+    return {entity_name}Repository(database_provider).list()
+
+@{entity_lower}_router.post("/")
+def create_{entity_lower}(payload: {module_name}.{entity_name}In, database_provider: providers.DatabaseProvider = Depends(dependencies.get_database_provider)):
+    {entity_name}Repository(database_provider).create(payload)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+@{entity_lower}_router.put("/{{id}}/")
+def edit_{entity_lower}(id: int = Path(...), payload: {module_name}.UserEdit = Body(...), database_provider: providers.DatabaseProvider = Depends(dependencies.get_database_provider)):
+    {entity_name}Repository(database_provider).update(id, payload)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@{entity_lower}_router.delete("/{{id}}/")
+def delete_{entity_lower}(
+    id: int = Path(...),
+    database_provider: providers.DatabaseProvider = Depends(
+        dependencies.get_database_provider
+    ),
+):
+    {entity_name}Repository(database_provider).delete(id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+"""
+
+BASE_EMBED_ARRAY_BOILERPLATE = """from {project_folder}.dtos.base import embed_array
+from ._{entity_lower} import {entity_name}
+
+
+{entity_name}EmbedArray = embed_array({entity_name})
+"""

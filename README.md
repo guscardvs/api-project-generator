@@ -38,6 +38,15 @@ Simple API Structure Generator using tecnologies:
   api-project create:enum [enum_name] --auto-opts [opt_name]
   ```
 
+- `create:entity`: Creates dtos, routes, repository and table for desired entity
+
+  > Optional `--sync` option allow to toggle between async repositories and routes or synchronous ones.
+
+  ```bash
+  api-project create:entity [entity_module] [entity_name]
+  ```
+
+
 ### Observations
 
 > All filenames and foldernames are

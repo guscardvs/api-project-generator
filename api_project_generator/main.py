@@ -56,3 +56,9 @@ def create_enum(
     if not enum_name:
         enum_name = typer.prompt("Digite o nome do enum")
     return commands.create_enum(enum_name, auto_opts)
+
+@app.command("create:entity")
+def create_dto(module: str, name: str = typer.Argument(""), sync: bool = typer.Option(False)):
+    if not name:
+        name = typer.prompt("Digite o nome da entidade")
+    return commands.create_entity(module, name, sync)
