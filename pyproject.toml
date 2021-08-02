@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "api-project-generator"
-version = "0.3.5"
+version = "0.4.0"
 description = ""
 authors = ["Gustavo Correa <self.gustavocorrea@gmail.com>"]
 readme = "README.md"
@@ -22,7 +22,7 @@ profile = "black"
 
 [tool.commitizen]
 name = "cz_conventional_commits"
-version = "0.3.3"
+version = "0.4.0"
 tag_format = "$version"
 
 
