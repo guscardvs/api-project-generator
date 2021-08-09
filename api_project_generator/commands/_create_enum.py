@@ -19,8 +19,10 @@ def create_enum(enum_name: str, auto_opts: Optional[list[str]]):
     typer.echo(typer.style("Atualizando diretório"))
     functions.update_dunder_file(dunder_file, functions.camel_public_name_parser)
 
+
 def find_dtos_dir(curdir: pathlib.Path):
     return functions.find_directory(curdir, "dtos")
+
 
 def write_enum_file(
     enum_file: pathlib.Path, enum_name: str, auto_opts: Optional[list[str]]
@@ -32,8 +34,10 @@ def write_enum_file(
                     functions.to_snake(functions.clean_name(enum_name))
                 ),
                 auto_opts="\n    ".join(
-                    strings.ENUM_AUTO_OPTS_TEMPLATE.format(opt=opt, idx=idx)
-                    for idx, opt in enumerate(auto_opts or [])
+                    strings.ENUM_AUTO_OPTS_TEMPLATE.format(
+                        opt=opt.upper(), idx=f'"{opt.lower()}"'
+                    )
+                    for opt in (auto_opts or [])
                 ),
             )
         )
