@@ -1,3 +1,9 @@
+## 0.5.0 (2021-08-13)
+
+### Feat
+
+- **commands/fix**: added command update:imports and changed import engine to prevent skipping changed files
+
 ## 0.4.1 (2021-08-09)
 
 ### Fix
@@ -33,9 +39,19 @@
 - **create:api**: now validates if folder already exists or is a file
 - **create:api**: added port customization to connection, changed readme.md to conform to new api
 - **create:api**: added support for postgresql drivers, reduced dependencies, fixed minor bugs in alembic files and added support for non async in DatabaseProvider
-- **commands**: created new commands and changed old command
 
-## 0.1.0 (2021-07-16)
+## 0.3.0a0 (2021-07-17)
+
+## 0.2.0 (2021-07-17)
+
+## 0.1.0 (2021-07-17)
+
+### Feat
+
+- **commands**: created new commands and changed old command
+- **commands**: created create_table_command
+- **base**: stable initial version
+- **global**: initial commit setup
 
 ### Fix
 
@@ -43,9 +59,3 @@
 - **files**: removed wrongly commited files
 - **config**: fixed config sources
 - **stories**: removed wrongly imported folder
-
-### Feat
-
-- **commands**: created create_table_command
-- **base**: stable initial version
-- **global**: initial commit setup
