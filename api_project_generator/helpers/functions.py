@@ -1,9 +1,11 @@
+from enum import Enum
+import importlib
 import os
 import re
 import sys
 import subprocess
 from pathlib import Path
-from typing import Callable, Optional
+from typing import Any, Callable, Optional
 from unicodedata import normalize
 
 from git import GitConfigParser
@@ -12,6 +14,7 @@ from .repository import pypi_repository
 
 from . import strings
 from .files import Files
+from .module_helper import ModuleMapper
 
 
 def get_curdir():
@@ -112,6 +115,87 @@ def update_dunder_file(
     classes = ",".join('"{}"'.format(public_name_parser(file.name)) for file in files)
     with dunder_file.open("w") as stream:
         stream.write(strings.DUNDER_TEMPLATE.format(imports=imports, classes=classes))
+
+
+def update_module_dunder_file(
+    dunder_file: Path,
+    project_folder: Path,
+    inheritance_finder: Callable[[str], tuple[bool, type[Any]]],
+):
+
+    """update_module_dunder_file updates imports on dunder file. inheritance finder must be a callable which receives project_folder_name and returns a tuple with is_class(bool) and parent(type).
+    if is_class is true will compare via issubclass else will use isinstance"""
+
+    is_class, parent = inheritance_finder(project_folder.name)
+    if is_class:
+        module_mapper = ModuleMapper(
+            dunder_file.parent, project_folder, child_of=parent
+        )
+    else:
+        module_mapper = ModuleMapper(
+            dunder_file.parent, project_folder, instance_of=parent
+        )
+    module_mapper.find()
+    findings = module_mapper.get_findings()
+    with dunder_file.open("w") as stream:
+        stream.write(
+            strings.DUNDER_TEMPLATE.format(
+                imports="\n".join(findings.generate_import_string()),
+                classes=",".join(
+                    '"{}"'.format(item)
+                    for item in findings.all_keys()
+                ),
+            )
+        )
+
+
+def get_env_location():
+    result = subprocess.run(["poetry", "show", "-v"], capture_output=True)
+    try:
+        result= result.stdout.decode().split("\n")[0].split()[-1]
+    except IndexError:
+        raise ImportError
+    else:
+        return Path(result) / "lib" / "python3.9" / "site-packages", Path(result) / "lib64" / "python3.9" / "site-packages"
+
+def prepare_to_import(project_folder: Path):
+    env_paths = get_env_location()
+    for item in env_paths:
+        if item.exists():
+            sys.path.append(str(item))
+    sys.path.append(str(project_folder.parent))
+
+def reload_import(project_folder: Path):
+    sys.path.remove(str(project_folder.parent))
+    sys.path.append(str(project_folder.parent))
+
+
+def dto_inheritance_finder(project_folder: str) -> tuple[bool, type]:
+    return True, getattr(importlib.import_module(f"{project_folder}.dtos.base"), "DTO")
+
+
+def enum_inheritance_finder(_: str):
+    return True, Enum
+
+
+def table_inheritance_finder(_: str):
+    from sqlalchemy import Table  # type: ignore
+
+    return False, Table
+
+
+def repo_inheritance_finder(project_folder: str):
+    return True, getattr(
+        importlib.import_module(f"{project_folder}.database.helpers"),
+        "Repository",
+        object,
+    )
+
+
+def routes_inheritance_finder(_: str):
+    from fastapi import APIRouter  # type: ignore
+
+    return False, APIRouter
 
 
 def open_in_code(name: str):

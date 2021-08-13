@@ -394,8 +394,8 @@ if TYPE_CHECKING:
         data: list[DTO_T]
 
 
-def embed_array(dto: "type[DTO_T]") -> "_EmbedArray[DTO_T]":
-    return create_model(f"{{dto.__qualname__}}EmbedArray", __module__=dto.__module__, data=(list[dto], ...))  # type: ignore
+def embed_array(dto: "type[DTO_T]", mod: str) -> "_EmbedArray[DTO_T]":
+    return create_model(f"{dto.__qualname__}EmbedArray", __module__=mod, data=(list[dto], ...))  # type: ignore
 
 """
 
@@ -1731,6 +1731,9 @@ def sync_get_or_raise(
         raise exc.DoesNotExist
     return dict(result)
 
+class Repository:
+    pass
+
 """
 
 
@@ -1988,14 +1991,14 @@ ASYNC_REPOSITORY_BOILERPLATE = """from {project_folder} import exc, providers
 from sqlalchemy.exc import IntegrityError
 from {project_folder}.database import helpers, filters
 from {project_folder}.database.tables.{module_name} import {table_name}
-from {project_folder}.dtos.{module_name} import {entity_name}, {entity_name}In, {entity_name}Edit
+from {project_folder}.dtos import {module_name}
 
 
-class {entity_name}Repository:
+class {entity_name}Repository(helpers.Repository):
     def __init__(self, database_provider: providers.DatabaseProvider) -> None:
         self.database_provider = database_provider
 
-    async def create(self, payload: {entity_name}In) -> None:
+    async def create(self, payload: \"{module_name}.{entity_name}In\") -> None:
         query = {table_name}.insert().values(payload.dict())
         async with self.database_provider.begin() as conn:
             try:
@@ -2012,7 +2015,7 @@ class {entity_name}Repository:
             result = await conn.execute(query)
             return {{"data": list(map(dict, result.all()))}}
 
-    async def update(self, id: int, payload: {entity_name}Edit):
+    async def update(self, id: int, payload: \"{module_name}.{entity_name}Edit\"):
         await helpers.get_or_raise(self.database_provider, {table_name}, id=id)
         query = {table_name}.update().values(payload.dict()).where({table_name}.c.id == id)
         async with self.database_provider.begin() as conn:
@@ -2029,14 +2032,14 @@ SYNC_REPOSITORY_BOILERPLATE = """from {project_folder} import exc, providers
 from sqlalchemy.exc import IntegrityError
 from {project_folder}.database import helpers, filters
 from {project_folder}.database.tables.{module_name} import {table_name}
-from {project_folder}.dtos.{module_name} import {entity_name}, {entity_name}In, {entity_name}Edit
+from {project_folder}.dtos import {module_name}
 
 
-class {entity_name}Repository:
+class {entity_name}Repository(helpers.Repository):
     def __init__(self, database_provider: providers.DatabaseProvider) -> None:
         self.database_provider = database_provider
 
-    def create(self, payload: {entity_name}In) -> None:
+    def create(self, payload: \"{module_name}.{entity_name}In\") -> None:
         query = {table_name}.insert().values(payload.dict())
         with self.database_provider.sync() as conn:
             try:
@@ -2053,7 +2056,7 @@ class {entity_name}Repository:
             result = conn.execute(query)
             return {{"data": list(map(dict, result.all()))}}
 
-    def update(self, id: int, payload: {entity_name}Edit):
+    def update(self, id: int, payload: \"{module_name}.{entity_name}Edit\"):
         helpers.sync_get_or_raise(self.database_provider, {table_name}, id=id)
         query = {table_name}.update().values(payload.dict()).where({table_name}.c.id == id)
         with self.database_provider.sync() as conn:
@@ -2174,5 +2177,5 @@ BASE_EMBED_ARRAY_BOILERPLATE = """from {project_folder}.dtos.base import embed_a
 from ._{entity_lower} import {entity_name}
 
 
-{entity_name}EmbedArray = embed_array({entity_name})
+{entity_name}EmbedArray = embed_array({entity_name}, __name__)
 """
