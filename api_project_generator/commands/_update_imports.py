@@ -37,7 +37,7 @@ def update_dtos(project_folder: Path):
 
 def update_enums(project_folder: Path):
     functions.update_module_dunder_file(
-        project_folder / "dtos" / "enums",
+        project_folder / "dtos" / "enums"/ files.Files.python_file("init", dunder=True),
         project_folder,
         inheritance_finder=functions.enum_inheritance_finder
     )
