@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "api-project-generator"
-version = "0.5.1"
+version = "0.5.2"
 description = ""
 authors = ["Gustavo Correa <self.gustavocorrea@gmail.com>"]
 readme = "README.md"
@@ -23,7 +23,7 @@ profile = "black"
 
 [tool.commitizen]
 name = "cz_conventional_commits"
-version = "0.5.1"
+version = "0.5.2"
 tag_format = "$version"
 version_files = ["api_project_generator/__init__.py"]
 update_changelog_on_bump = true

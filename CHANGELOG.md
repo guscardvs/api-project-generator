@@ -1,3 +1,9 @@
+## 0.5.2 (2021-08-14)
+
+### Fix
+
+- **update:imports**: wrong path was passed to update_enums call
+
 ## 0.5.1 (2021-08-14)
 
 ### Fix
