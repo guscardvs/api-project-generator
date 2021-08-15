@@ -13,6 +13,7 @@ def update_imports():
     project_folder = db_dir.parent
     functions.prepare_to_import(project_folder)
     update_dtos(project_folder)
+    update_enums(project_folder)
     update_tables(project_folder)
     update_repositories(project_folder)
     update_routes(project_folder)
@@ -27,12 +28,19 @@ def ignore_when_running(func, *args, **kwargs):
 
 def update_dtos(project_folder: Path):
     for item in (project_folder / "dtos").iterdir():
-        if item.is_dir() and "pycache" not in item.name:
+        if item.is_dir() and item.name not in ["__pycache__", "enums"]:
             functions.update_module_dunder_file(
                 item / files.Files.python_file("init", dunder=True),
                 project_folder,
                 inheritance_finder=functions.dto_inheritance_finder,
             )
+
+def update_enums(project_folder: Path):
+    functions.update_module_dunder_file(
+        project_folder / "dtos" / "enums",
+        project_folder,
+        inheritance_finder=functions.enum_inheritance_finder
+    )
 
 
 def update_repositories(project_folder: Path):
