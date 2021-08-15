@@ -1,3 +1,9 @@
+## 0.5.1 (2021-08-14)
+
+### Fix
+
+- **update:imports**: fixed bug where on updating enums all imports failed
+
 ## 0.5.0 (2021-08-13)
 
 ### Feat
