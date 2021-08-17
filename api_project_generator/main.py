@@ -57,11 +57,18 @@ def create_enum(
         enum_name = typer.prompt("Digite o nome do enum")
     return commands.create_enum(enum_name, auto_opts)
 
+
 @app.command("create:entity")
-def create_entity(module: str, name: str = typer.Argument(""), sync: bool = typer.Option(False)):
+def create_entity(
+    module: str,
+    name: str = typer.Argument(""),
+    sync: bool = typer.Option(False),
+    single_file_dto: bool = typer.Option(False, "--single-file", "-sf"),
+):
     if not name:
         name = typer.prompt("Digite o nome da entidade")
-    return commands.create_entity(module, name, sync)
+    return commands.create_entity(module, name, sync, single_file_dto)
+
 
 @app.command("update:imports")
 def update_imports():

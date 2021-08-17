@@ -6,7 +6,7 @@ from ._create_dto import write_dto_file
 from ._create_table import create_table
 
 
-def create_entity(module: str, name: str, sync: bool):
+def create_entity(module: str, name: str, sync: bool, single_file_dto: bool):
     curdir = functions.get_curdir()
     db_dir = functions.find_directory(curdir, "database")
     if not db_dir:
@@ -15,15 +15,21 @@ def create_entity(module: str, name: str, sync: bool):
     project_folder = db_dir.parent
     try:
         functions.prepare_to_import(project_folder)
-        _create_dtos(module, name, project_folder)
+        _create_dtos(module, name, project_folder, single_file_dto)
         _create_table(module, name)
         _create_repository(module, name, project_folder, sync)
     except ImportError:
-        typer.echo(typer.style("You didnt installed the packages yet. Run 'poetry install'.", fg=typer.colors.RED))
+        typer.echo(
+            typer.style(
+                "You didnt installed the packages yet. Run 'poetry install'.",
+                fg=typer.colors.RED,
+            )
+        )
         raise typer.Exit(0)
     else:
         _create_routes(module, name, project_folder, sync)
     typer.echo("Entidade criada, execute 'api-project update:imports")
+
 
 def _create_table(module: str, name: str):
     try:
@@ -32,18 +38,23 @@ def _create_table(module: str, name: str):
         pass
 
 
-def _create_dtos(module: str, name: str, project_folder: pathlib.Path):
+def _create_dtos(
+    module: str, name: str, project_folder: pathlib.Path, single_file_dto: bool
+):
     dtos_dir = project_folder / "dtos"
     if not dtos_dir:
         typer.echo("Diretório de DTOs não encontrado")
         raise typer.Exit()
-    for item in [name, f"{name}-in", f"{name}-edit"]:
-        _create_dto(dtos_dir, module, item)
-    _create_embed_array(dtos_dir, module, name)
+    if single_file_dto:
+        _create_single_file_dto(dtos_dir, module, name)
+    else:
+        for item in [name, f"{name}-in", f"{name}-edit"]:
+            _create_dto(dtos_dir, module, item)
+        _create_embed_array(dtos_dir, module, name)
     functions.update_module_dunder_file(
         dtos_dir / module / files.Files.python_file("init", dunder=True),
         project_folder,
-        functions.dto_inheritance_finder
+        functions.dto_inheritance_finder,
     )
 
 
@@ -52,6 +63,21 @@ def _create_dto(dtos_dir: pathlib.Path, module: str, name: str):
     dto_file, _ = mod.retrieve_or_exit()
     typer.echo(typer.style(f"Escrevendo arquivo do DTO: {name}"))
     write_dto_file(dto_file, dtos_dir.parent, name)
+
+
+def _create_single_file_dto(dtos_dir: pathlib.Path, module: str, name: str):
+    mod = module_file.ModuleFile(dtos_dir, module, name)
+    dto_file, _ = mod.retrieve_or_exit()
+    typer.echo(typer.style(f"Escrevendo dtos em arquivo"))
+    with dto_file.open("w") as stream:
+        stream.write(
+            strings.SINGLE_FILE_DTO_TEMPLATE.format(
+                project_folder=dtos_dir.parent.name,
+                dto_name=functions.to_camel(
+                    functions.to_snake(functions.clean_name(name))
+                ),
+            )
+        )
 
 
 def _create_embed_array(dtos_dir: pathlib.Path, module: str, name: str):
@@ -103,7 +129,9 @@ def _create_repository(
                     entity_name=functions.to_camel(entity_snake_case),
                 )
             )
-        functions.update_module_dunder_file(dunder_file, project_folder, functions.repo_inheritance_finder)
+        functions.update_module_dunder_file(
+            dunder_file, project_folder, functions.repo_inheritance_finder
+        )
 
 
 def routes_name_parser(string: str):

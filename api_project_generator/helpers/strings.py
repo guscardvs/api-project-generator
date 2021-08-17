@@ -1987,6 +1987,33 @@ class {dto_name}(DTO):
 
 '''
 
+SINGLE_FILE_DTO_TEMPLATE = '''from pydantic.fields import Field
+
+
+from {project_folder}.dtos.base import DTO, embed_array
+
+# Add your dto fields here
+
+class {dto_name}(DTO):
+    """ Representation of {dto_name} """
+    id_: int = Field(..., alias="id")
+
+class {dto_name}In(DTO):
+    """ Representation of {dto_name} at insertion """
+
+
+class {dto_name}Edit(DTO):
+    """ Representattion of {dto_name} editable optional fields """
+
+
+# Array of {dto_name} wrapped by a "data" key with the format:
+# class {dto_name}EmbedArray(DTO):
+#
+#   data: list[{dto_name}]
+{dto_name}EmbedArray = embed_array({dto_name}, __name__) 
+
+'''
+
 ASYNC_REPOSITORY_BOILERPLATE = """from {project_folder} import exc, providers
 from sqlalchemy.exc import IntegrityError
 from {project_folder}.database import helpers, filters
