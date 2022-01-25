@@ -30,9 +30,8 @@ def create_api(code: bool, info: project_info.ProjectInfo):
     curdir = functions.get_curdir()
     folder = (curdir / info.name)
     while folder.exists():
-        if folder.is_dir():
-            if not any(folder.iterdir()):
-                break
+        if folder.is_dir() and not any(folder.iterdir()):
+            break
         typer.echo(typer.style("{folder} already exists".format(folder=info.name), fg=typer.colors.RED))
         raise typer.Exit(1)
     ApiStructure.create(curdir, info.name, pyproject, info.db_type)
