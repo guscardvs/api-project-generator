@@ -3,6 +3,7 @@ name = "api-project-generator"
 version = "0.5.2"
 description = ""
 authors = ["Gustavo Correa <self.gustavocorrea@gmail.com>"]
+url = "https://github.com/guscardvs/api-project-generator"
 readme = "README.md"
 
 [tool.poetry.scripts]
