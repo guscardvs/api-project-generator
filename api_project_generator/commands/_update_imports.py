@@ -1,7 +1,8 @@
-import os
 from pathlib import Path
-from api_project_generator.helpers import files, functions
+
 import typer
+
+from api_project_generator.helpers import files, functions
 
 
 def update_imports():
@@ -35,11 +36,15 @@ def update_dtos(project_folder: Path):
                 inheritance_finder=functions.dto_inheritance_finder,
             )
 
+
 def update_enums(project_folder: Path):
     functions.update_module_dunder_file(
-        project_folder / "dtos" / "enums"/ files.Files.python_file("init", dunder=True),
+        project_folder
+        / "dtos"
+        / "enums"
+        / files.Files.python_file("init", dunder=True),
         project_folder,
-        inheritance_finder=functions.enum_inheritance_finder
+        inheritance_finder=functions.enum_inheritance_finder,
     )
 
 

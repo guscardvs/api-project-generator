@@ -64,7 +64,7 @@ class Files:
     def python_file(filename: str, *, private: bool = False, dunder: bool = False):
         response = filename
         if private:
-            response= f"_{filename}"
+            response = f"_{filename}"
         if dunder:
-            response= f"__{filename}__"
+            response = f"__{filename}__"
         return f"{response}.py"

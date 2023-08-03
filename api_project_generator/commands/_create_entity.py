@@ -1,7 +1,9 @@
 import pathlib
 
 import typer
+
 from api_project_generator.helpers import files, functions, module_file, strings
+
 from ._create_dto import write_dto_file
 from ._create_table import create_table
 
@@ -19,11 +21,17 @@ def create_entity(module: str, name: str, sync: bool):
         _create_table(module, name)
         _create_repository(module, name, project_folder, sync)
     except ImportError:
-        typer.echo(typer.style("You didnt installed the packages yet. Run 'poetry install'.", fg=typer.colors.RED))
+        typer.echo(
+            typer.style(
+                "You didnt installed the packages yet. Run 'poetry install'.",
+                fg=typer.colors.RED,
+            )
+        )
         raise typer.Exit(0)
     else:
         _create_routes(module, name, project_folder, sync)
     typer.echo("Entidade criada, execute 'api-project update:imports")
+
 
 def _create_table(module: str, name: str):
     try:
@@ -43,7 +51,7 @@ def _create_dtos(module: str, name: str, project_folder: pathlib.Path):
     functions.update_module_dunder_file(
         dtos_dir / module / files.Files.python_file("init", dunder=True),
         project_folder,
-        functions.dto_inheritance_finder
+        functions.dto_inheritance_finder,
     )
 
 
@@ -103,7 +111,9 @@ def _create_repository(
                     entity_name=functions.to_camel(entity_snake_case),
                 )
             )
-        functions.update_module_dunder_file(dunder_file, project_folder, functions.repo_inheritance_finder)
+        functions.update_module_dunder_file(
+            dunder_file, project_folder, functions.repo_inheritance_finder
+        )
 
 
 def routes_name_parser(string: str):

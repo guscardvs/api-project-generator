@@ -3,7 +3,7 @@ name = "api-project-generator"
 version = "0.5.2"
 description = ""
 authors = ["Gustavo Correa <self.gustavocorrea@gmail.com>"]
-url = "https://github.com/guscardvs/api-project-generator"
+repository = "https://github.com/guscardvs/api-project-generator"
 readme = "README.md"
 
 [tool.poetry.scripts]
@@ -12,12 +12,18 @@ api-project = "api_project_generator.main:app"
 [tool.poetry.dependencies]
 python = "^3.9"
 GitPython = "^3.1.18"
-typer = "^0.3.2"
+gyver = "^2.3.3"
+sqlalchemy = "^2.0.17"
+tomlkit = "^0.11.8"
+jinja2 = "^3.1.2"
+typer = "^0.9.0"
+appdirs = "^1.4.4"
 
-[tool.poetry.dev-dependencies]
-black = "^21.6b0"
-pylint = "^2.9.6"
-typing-extensions = "^3.10.0"
+[tool.poetry.group.style.dependencies]
+black = "^23.7.0"
+autoflake = "^2.2.0"
+isort = "^5.12.0"
+pylint = "^2.17.4"
 
 [tool.isort]
 profile = "black"

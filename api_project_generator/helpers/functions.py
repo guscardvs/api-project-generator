@@ -1,34 +1,17 @@
-from enum import Enum
 import importlib
 import os
 import re
-import sys
 import subprocess
+import sys
+from enum import Enum
 from pathlib import Path
 from typing import Any, Callable, Optional
 from unicodedata import normalize
 
-from git import GitConfigParser
-
-from .repository import pypi_repository
-
 from . import strings
 from .files import Files
 from .module_helper import ModuleMapper
-
-
-def get_curdir():
-    return Path.cwd()
-
-
-def get_default_fullname() -> str:
-    reader = GitConfigParser()
-    return reader.get_value("user", "name", "")  # type: ignore
-
-
-def get_default_email() -> str:
-    reader = GitConfigParser()
-    return reader.get_value("user", "email", "")  # type: ignore
+from .repository import pypi_repository
 
 
 def get_user_signature(fullname: str, email: str):
@@ -122,7 +105,6 @@ def update_module_dunder_file(
     project_folder: Path,
     inheritance_finder: Callable[[str], tuple[bool, type[Any]]],
 ):
-
     """update_module_dunder_file updates imports on dunder file. inheritance finder must be a callable which receives project_folder_name and returns a tuple with is_class(bool) and parent(type).
     if is_class is true will compare via issubclass else will use isinstance"""
 
@@ -141,10 +123,7 @@ def update_module_dunder_file(
         stream.write(
             strings.DUNDER_TEMPLATE.format(
                 imports="\n".join(findings.generate_import_string()),
-                classes=",".join(
-                    '"{}"'.format(item)
-                    for item in findings.all_keys()
-                ),
+                classes=",".join('"{}"'.format(item) for item in findings.all_keys()),
             )
         )
 
@@ -152,11 +131,15 @@ def update_module_dunder_file(
 def get_env_location():
     result = subprocess.run(["poetry", "show", "-v"], capture_output=True)
     try:
-        result= result.stdout.decode().split("\n")[0].split()[-1]
+        result = result.stdout.decode().split("\n")[0].split()[-1]
     except IndexError:
         raise ImportError
     else:
-        return Path(result) / "lib" / "python3.9" / "site-packages", Path(result) / "lib64" / "python3.9" / "site-packages"
+        return (
+            Path(result) / "lib" / "python3.9" / "site-packages",
+            Path(result) / "lib64" / "python3.9" / "site-packages",
+        )
+
 
 def prepare_to_import(project_folder: Path):
     env_paths = get_env_location()
@@ -164,6 +147,7 @@ def prepare_to_import(project_folder: Path):
         if item.exists():
             sys.path.append(str(item))
     sys.path.append(str(project_folder.parent))
+
 
 def reload_import(project_folder: Path):
     sys.path.remove(str(project_folder.parent))

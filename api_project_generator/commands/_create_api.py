@@ -19,23 +19,27 @@ def create_api(code: bool, info: project_info.ProjectInfo):
         info.name,
         info.version,
         info.description,
-        db_type=info.db_type,
+        db_type=info.driver,
         fullname=info.fullname,
         email=info.email,
-        _dependencies=dependencies.DEFAULT_API_DEPENDENCIES,
-        _dev_dependencies=dependencies.DEFAULT_DEV_DEPENDENCIES,
-        _optional_dependencies=dependencies.DEFAULT_DEPLOY_DEPENDENCIES,
+        dependencies=dependencies.DEFAULT_API_DEPENDENCIES,
+        dev_dependencies=dependencies.DEFAULT_DEV_DEPENDENCIES,
+        optional_dependencies=dependencies.DEFAULT_DEPLOY_DEPENDENCIES,
     )
     typer.echo(typer.style("Creating project structure", fg=typer.colors.GREEN))
     curdir = functions.get_curdir()
-    folder = (curdir / info.name)
+    folder = curdir / info.name
     while folder.exists():
         if folder.is_dir():
             if not any(folder.iterdir()):
                 break
-        typer.echo(typer.style("{folder} already exists".format(folder=info.name), fg=typer.colors.RED))
+        typer.echo(
+            typer.style(
+                "{folder} already exists".format(folder=info.name), fg=typer.colors.RED
+            )
+        )
         raise typer.Exit(1)
-    ApiStructure.create(curdir, info.name, pyproject, info.db_type)
+    ApiStructure.create(curdir, info.name, pyproject, info.driver)
 
     typer.echo(typer.style("Initializing git", fg=typer.colors.GREEN))
     git_repo.init_repository(curdir / info.name)
@@ -51,7 +55,7 @@ class ApiStructure:
         base_dir: pathlib.Path,
         project_name: str,
         pyproject_toml: pyproject_toml.PyprojectToml,
-        db_type: project_info.DbType,
+        db_type: project_info.Driver,
     ) -> None:
         self.files = files.Files(base_dir / project_name)
         self.project_name = project_name
@@ -80,7 +84,10 @@ class ApiStructure:
                     dev_dependencies=self.pyproject_toml.get_dependencies(
                         dev=True, parser=functions.get_dependency_string
                     ),
-                    optional_dependencies=", ".join(f'"{item}"' for item in self.pyproject_toml.optional_dependencies)
+                    optional_dependencies=", ".join(
+                        f'"{item}"'
+                        for item in self.pyproject_toml.optional_dependencies
+                    ),
                 )
             )
 
@@ -566,7 +573,7 @@ class ApiStructure:
         base_dir: pathlib.Path,
         project_name: str,
         pyproject_toml: pyproject_toml.PyprojectToml,
-        db_type: project_info.DbType,
+        db_type: project_info.Driver,
     ):
         structure = cls(base_dir, project_name, pyproject_toml, db_type)
 

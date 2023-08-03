@@ -1,24 +1,34 @@
-from dataclasses import dataclass
-from enum import Enum
+import sys
+from typing import Optional
+
+from gyver.attrs import define
+from gyver.database import Driver
+from gyver.database.drivers.utils import resolve_driver
+from gyver.utils import lazyfield
+
+from api_project_generator.core.config import Config
+from api_project_generator.models.version import VersionType
+
+from .project_organization import ProjectOrganization
 
 
-@dataclass
+@define
 class ProjectInfo:
+    config: Config
     name: str
     version: str
+    version_type: VersionType
     description: str
     fullname: str
     email: str
-    db_type: "DbType"
+    driver: Optional[Driver]
+    organization: ProjectOrganization
+    pyver: Optional[str] = None
 
+    @lazyfield
+    def dialect(self):
+        return self.driver and resolve_driver(self.driver)
 
-class DbType(str, Enum):
-    MYSQL = "mysql"
-    POSTGRES = "postgres"
-
-    def get_db_port(self):
-        _options = {
-            DbType.POSTGRES: 5432,
-            DbType.MYSQL: 3306
-        }
-        return _options[self]
+    @lazyfield
+    def effective_pyver(self):
+        return self.pyver or f"{sys.version_info.major}.{sys.version_info.minor}"

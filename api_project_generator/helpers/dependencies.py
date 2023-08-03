@@ -8,7 +8,7 @@ DEFAULT_API_DEPENDENCIES = {
     "aiomysql",
     "alembic",
     "asyncpg",
-    "psycopg2-binary"
+    "psycopg2-binary",
 }
 DEFAULT_DEV_DEPENDENCIES = {
     "pytest",
@@ -20,10 +20,4 @@ DEFAULT_DEV_DEPENDENCIES = {
     "faker",
 }
 
-DEFAULT_DEPLOY_DEPENDENCIES = {
-    "httptools",
-    "uvloop",
-    "gunicorn",
-    "circus",
-    "psycopg2"
-}
+DEFAULT_DEPLOY_DEPENDENCIES = {"httptools", "uvloop", "gunicorn", "circus", "psycopg2"}
